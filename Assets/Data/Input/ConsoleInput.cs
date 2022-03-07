@@ -6,14 +6,13 @@ using System.Collections.Generic;
 using UnityEngine.InputSystem;
 using UnityEngine.InputSystem.Utilities;
 
-namespace Data.Input
+public class @ConsoleInput : IInputActionCollection, IDisposable
 {
-    public class @ConsoleInput : IInputActionCollection, IDisposable
+    public InputActionAsset asset { get; }
+
+    public @ConsoleInput()
     {
-        public InputActionAsset asset { get; }
-        public @ConsoleInput()
-        {
-            asset = InputActionAsset.FromJson(@"{
+        asset = InputActionAsset.FromJson(@"{
     ""name"": ""ConsoleInput"",
     ""maps"": [
         {
@@ -46,90 +45,116 @@ namespace Data.Input
     ],
     ""controlSchemes"": []
 }");
-            // Console
-            m_Console = asset.FindActionMap("Console", throwIfNotFound: true);
-            m_Console_Open = m_Console.FindAction("Open", throwIfNotFound: true);
+        // Console
+        m_Console = asset.FindActionMap("Console", throwIfNotFound: true);
+        m_Console_Open = m_Console.FindAction("Open", throwIfNotFound: true);
+    }
+
+    public void Dispose()
+    {
+        UnityEngine.Object.Destroy(asset);
+    }
+
+    public InputBinding? bindingMask
+    {
+        get => asset.bindingMask;
+        set => asset.bindingMask = value;
+    }
+
+    public ReadOnlyArray<InputDevice>? devices
+    {
+        get => asset.devices;
+        set => asset.devices = value;
+    }
+
+    public ReadOnlyArray<InputControlScheme> controlSchemes => asset.controlSchemes;
+
+    public bool Contains(InputAction action)
+    {
+        return asset.Contains(action);
+    }
+
+    public IEnumerator<InputAction> GetEnumerator()
+    {
+        return asset.GetEnumerator();
+    }
+
+    IEnumerator IEnumerable.GetEnumerator()
+    {
+        return GetEnumerator();
+    }
+
+    public void Enable()
+    {
+        asset.Enable();
+    }
+
+    public void Disable()
+    {
+        asset.Disable();
+    }
+
+    // Console
+    private readonly InputActionMap m_Console;
+    private IConsoleActions m_ConsoleActionsCallbackInterface;
+    private readonly InputAction m_Console_Open;
+
+    public struct ConsoleActions
+    {
+        private @ConsoleInput m_Wrapper;
+
+        public ConsoleActions(@ConsoleInput wrapper)
+        {
+            m_Wrapper = wrapper;
         }
 
-        public void Dispose()
-        {
-            UnityEngine.Object.Destroy(asset);
-        }
+        public InputAction @Open => m_Wrapper.m_Console_Open;
 
-        public InputBinding? bindingMask
+        public InputActionMap Get()
         {
-            get => asset.bindingMask;
-            set => asset.bindingMask = value;
-        }
-
-        public ReadOnlyArray<InputDevice>? devices
-        {
-            get => asset.devices;
-            set => asset.devices = value;
-        }
-
-        public ReadOnlyArray<InputControlScheme> controlSchemes => asset.controlSchemes;
-
-        public bool Contains(InputAction action)
-        {
-            return asset.Contains(action);
-        }
-
-        public IEnumerator<InputAction> GetEnumerator()
-        {
-            return asset.GetEnumerator();
-        }
-
-        IEnumerator IEnumerable.GetEnumerator()
-        {
-            return GetEnumerator();
+            return m_Wrapper.m_Console;
         }
 
         public void Enable()
         {
-            asset.Enable();
+            Get().Enable();
         }
 
         public void Disable()
         {
-            asset.Disable();
+            Get().Disable();
         }
 
-        // Console
-        private readonly InputActionMap m_Console;
-        private IConsoleActions m_ConsoleActionsCallbackInterface;
-        private readonly InputAction m_Console_Open;
-        public struct ConsoleActions
+        public bool enabled => Get().enabled;
+
+        public static implicit operator InputActionMap(ConsoleActions set)
         {
-            private @ConsoleInput m_Wrapper;
-            public ConsoleActions(@ConsoleInput wrapper) { m_Wrapper = wrapper; }
-            public InputAction @Open => m_Wrapper.m_Console_Open;
-            public InputActionMap Get() { return m_Wrapper.m_Console; }
-            public void Enable() { Get().Enable(); }
-            public void Disable() { Get().Disable(); }
-            public bool enabled => Get().enabled;
-            public static implicit operator InputActionMap(ConsoleActions set) { return set.Get(); }
-            public void SetCallbacks(IConsoleActions instance)
+            return set.Get();
+        }
+
+        public void SetCallbacks(IConsoleActions instance)
+        {
+            if (m_Wrapper.m_ConsoleActionsCallbackInterface != null)
             {
-                if (m_Wrapper.m_ConsoleActionsCallbackInterface != null)
-                {
-                    @Open.started -= m_Wrapper.m_ConsoleActionsCallbackInterface.OnOpen;
-                    @Open.performed -= m_Wrapper.m_ConsoleActionsCallbackInterface.OnOpen;
-                    @Open.canceled -= m_Wrapper.m_ConsoleActionsCallbackInterface.OnOpen;
-                }
-                m_Wrapper.m_ConsoleActionsCallbackInterface = instance;
-                if (instance != null)
-                {
-                    @Open.started += instance.OnOpen;
-                    @Open.performed += instance.OnOpen;
-                    @Open.canceled += instance.OnOpen;
-                }
+                @Open.started -= m_Wrapper.m_ConsoleActionsCallbackInterface.OnOpen;
+                @Open.performed -= m_Wrapper.m_ConsoleActionsCallbackInterface.OnOpen;
+                @Open.canceled -= m_Wrapper.m_ConsoleActionsCallbackInterface.OnOpen;
+            }
+
+            m_Wrapper.m_ConsoleActionsCallbackInterface = instance;
+            if (instance != null)
+            {
+                @Open.started += instance.OnOpen;
+                @Open.performed += instance.OnOpen;
+                @Open.canceled += instance.OnOpen;
             }
         }
-        public ConsoleActions @Console => new ConsoleActions(this);
-        public interface IConsoleActions
-        {
-            void OnOpen(InputAction.CallbackContext context);
-        }
+    }
+
+    public ConsoleActions @Console => new ConsoleActions(this);
+
+    public interface IConsoleActions
+    {
+        void OnOpen(InputAction.CallbackContext context);
     }
 }

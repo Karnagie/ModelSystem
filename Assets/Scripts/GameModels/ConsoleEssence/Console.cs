@@ -1,5 +1,4 @@
 ﻿using System;
-using Data.Input;
 using GameModels.ConsoleEssence.ConsoleUiEssence;
 using MetaGame.Actions;
 using MetaGame.Architecture.Models;
